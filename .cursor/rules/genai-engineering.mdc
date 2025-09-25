@@ -1,0 +1,153 @@
+---
+alwaysApply: true
+---
+# GenAI Engineering with Python & FastAPI
+
+Expert guidelines for building scalable AI applications with LangGraph, vector databases, embeddings, and FastAPI.
+
+## Core Principles
+- Write concise, technical responses with accurate Python examples
+- Use functional programming; minimize classes except for Pydantic models
+- Prioritize async operations for I/O-bound AI tasks
+- Use descriptive variable names with auxiliary verbs (e.g., `is_cached`, `has_embeddings`)
+- Use lowercase with underscores for files (e.g., `vector_store.py`, `embedding_service.py`)
+
+## Package Management with `uv`
+**✅ Use `uv` exclusively for all dependencies**
+
+```bash
+# Dependency management
+uv add <package>        # Add dependencies
+uv remove <package>     # Remove dependencies  
+uv sync                 # Sync from lock file
+uv run script.py        # Run with dependencies
+```
+
+## FastAPI for GenAI APIs
+- Keep API surface minimal - focus on chat, ingest, and evaluation endpoints
+- Use Pydantic v2 models for request/response validation
+- Implement proper streaming for LLM responses using `StreamingResponse`
+- Use dependency injection for shared resources (vector stores, LLM clients)
+- Handle timeouts gracefully for long-running AI operations
+
+```python
+from fastapi import FastAPI, Depends
+from fastapi.responses import StreamingResponse
+
+async def stream_chat_response(messages: list[dict]) -> AsyncGenerator[str, None]:
+    # Stream LLM responses
+    pass
+
+@app.post("/chat")
+async def chat(
+    request: ChatRequest,
+    agent: Agent = Depends(get_agent)
+) -> StreamingResponse:
+    return StreamingResponse(
+        stream_chat_response(request.messages),
+        media_type="text/plain"
+    )
+```
+
+## LangGraph Best Practices
+- **State Management**: Use typed state objects with clear schemas
+- **ReAct Pattern**: Implement reasoning-action loops for complex workflows
+- **Tool Orchestration**: Define tools as async functions with proper error handling
+- **Checkpointing**: Persist agent state for resumable conversations
+
+```python
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+
+class AgentState(TypedDict):
+    messages: Annotated[list, "Chat messages"]
+    context: Annotated[str, "Retrieved context"]
+    
+def create_agent_graph() -> StateGraph:
+    workflow = StateGraph(AgentState)
+    workflow.add_node("retrieve", retrieve_context)
+    workflow.add_node("generate", generate_response)
+    return workflow
+```
+
+## Vector Database & Embeddings
+- **Model Selection**: Use `text-embedding-3-small` for speed, `text-embedding-3-large` for accuracy
+- **Caching Strategy**: Cache embeddings with Redis/memory store for frequent queries
+- **Hybrid Retrieval**: Combine vector similarity with lexical search (BM25)
+- **Indexing**: Use HNSW for approximate nearest neighbor search
+- **Chunking**: Implement semantic chunking with overlap for better context
+
+```python
+from typing import Protocol
+
+class VectorStore(Protocol):
+    async def add_documents(self, docs: list[Document]) -> None: ...
+    async def similarity_search(self, query: str, k: int = 5) -> list[Document]: ...
+
+async def hybrid_retrieval(
+    query: str, 
+    vector_store: VectorStore,
+    k: int = 10
+) -> list[Document]:
+    # Combine vector + lexical search
+    vector_results = await vector_store.similarity_search(query, k)
+    # Apply reranking if needed
+    return rerank_results(vector_results)
+```
+
+## Memory & Context Management
+- **Conversation Memory**: Use structured memory with summarization for long conversations
+- **Context Windows**: Implement intelligent truncation strategies
+- **Memory Types**: Distinguish between short-term (conversation) and long-term (knowledge) memory
+
+## Error Handling & Monitoring
+- **Graceful Degradation**: Provide fallback responses when AI services fail
+- **Rate Limiting**: Implement proper rate limiting for LLM API calls
+- **Observability**: Log embeddings quality, retrieval metrics, and response times
+- **Circuit Breakers**: Use circuit breaker pattern for external AI services
+
+```python
+from functools import wraps
+import asyncio
+
+def with_circuit_breaker(max_failures: int = 3):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await asyncio.wait_for(func(*args, **kwargs), timeout=30.0)
+            except asyncio.TimeoutError:
+                raise HTTPException(status_code=504, detail="AI service timeout")
+        return wrapper
+    return decorator
+```
+
+## Performance Optimization
+- **Async Everything**: Use async for all AI operations (embeddings, LLM calls, vector search)
+- **Batching**: Batch embedding generation and vector operations
+- **Connection Pooling**: Maintain connection pools for vector databases and LLM providers
+- **Quantization**: Use quantized embeddings for production deployments
+
+## Security & Privacy
+- **Input Sanitization**: Validate and sanitize all user inputs before processing
+- **PII Detection**: Implement PII detection/masking for sensitive data
+- **API Key Management**: Use environment variables and proper secret management
+- **Output Filtering**: Filter potentially harmful or inappropriate AI outputs
+
+## Dependencies for GenAI
+Core packages to include:
+- `fastapi` + `uvicorn` - API framework
+- `pydantic` - Data validation
+- `langchain` + `langgraph` - AI orchestration
+- `openai` / `anthropic` - LLM providers
+- `chromadb` / `pinecone-client` - Vector databases
+- `tiktoken` - Token counting
+- `redis` - Caching
+
+## Key Conventions
+1. Use dependency injection for all AI services and stores
+2. Implement proper streaming for real-time responses
+3. Cache expensive operations (embeddings, model inference)
+4. Monitor token usage and API costs
+5. Test with synthetic data and evaluation frameworks (RAGAS)
+6. Use structured logging for AI operations debugging

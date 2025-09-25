@@ -1,0 +1,32 @@
+name: Test Agent API
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version:  ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install the project
+        run: uv sync --locked --all-extras
+      - name: Lint with ruff
+        run: |
+          ruff format . --check
+          ruff check .
+      - name: Test with pytest
+        run: |
+          pytest tests/

@@ -1,0 +1,19 @@
+services:
+  agent-api:
+    container_name: voice-agent-course
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      - voice-agent-course-network
+
+volumes:
+  data:
+
+networks:
+  voice-agent-course-network:
+    name: voice-agent-course-network

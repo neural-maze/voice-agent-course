@@ -1,0 +1,55 @@
+[project]
+name = "voice-agent-course"
+version = "0.1.0"
+description = "Open-source that teaches you how to create phone voice agents."
+readme = "README.md"
+classifiers = [
+    # TODO
+]
+license = {text = "MIT"}
+dependencies = [
+  "typer",
+  "fastapi[standard]",
+  "loguru",
+  "pydantic",
+  "pydantic-settings",
+  "ipykernel",
+  "RealtimeTTS[all]",
+  "RealtimeSTT",
+  "pip>=25.2",
+  "langchain-ollama>=0.3.8",
+]
+requires-python = ">= 3.10"
+
+[dependency-groups]
+dev = [
+    "coverage",
+    "pre-commit",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[project.scripts]
+voice_agent_course = "voice_agent_course.cli:app"
+
+[tool.ty]
+# All rules are enabled as "error" by default; no need to specify unless overriding.
+# Example override: relax a rule for the entire project (uncomment if needed).
+# rules.TY015 = "warn"  # For invalid-argument-type, warn instead of error.
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.uv]
+package = true
