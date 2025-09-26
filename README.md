@@ -40,7 +40,7 @@ Excited? Let's get started!
 **Try the current demo:**
 ```bash
 uv sync
-uv run python scripts/voice_agent_demo.py
+uv run python scripts/voice_agent_tools/voice_agent_tools_demo.py
 ```
 
 > 🚧 **Current Status**: Basic voice conversation works! The real estate features (property database, scheduling, phone integration) are in development.
@@ -115,7 +115,7 @@ Before you begin, you need:
 1. **Install Ollama** and pull a model:
    ```bash
    ollama serve
-   ollama pull qwen3:1.7b
+   ollama pull qwen3:4b-instruct-2507-q4_K_M
    ```
 
 2. **Install dependencies**:
@@ -125,7 +125,7 @@ Before you begin, you need:
 
 3. **Test your setup**:
    ```bash
-   uv run python scripts/voice_agent_demo.py
+   uv run python scripts/voice_agent_tools/voice_agent_tools_demo.py
    ```
 
 > Make sure your microphone and speakers are working! This demo shows the core voice capabilities that we'll extend into a full real estate agent.

@@ -31,13 +31,9 @@ class LLMProviderFactory:
             "meta-llama/llama-4-scout-17b-16e-instruct",
             "meta-llama/llama-4-maverick-17b-128e-instruct",
             "moonshotai/kimi-k2-instruct-0905",
-            "openai/gpt-oss-20b",
-            "qwen/qwen3-32b",
         ],
         LLMProvider.OLLAMA: [
-            "qwen3:4b",
-            "llama3.2:1b",
-            "llama3.2:3b",
+            "qwen3:4b-instruct-2507-q4_K_M",
             "mistral:7b",
         ],
     }
