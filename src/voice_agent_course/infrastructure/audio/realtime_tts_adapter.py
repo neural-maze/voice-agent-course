@@ -33,7 +33,18 @@ class RealtimeTTSAdapter:
     Provides a clean interface for high-quality text-to-speech.
     """
 
-    def __init__(self, engine=None, stream=None, engine_type: str = "kokoro"):
+    def __init__(
+        self,
+        engine=None,
+        stream=None,
+        engine_type: str = "kokoro",
+        comma_silence_duration: float = 0.05,
+        sentence_silence_duration: float = 0.1,
+        default_silence_duration: float = 0.0,
+        frames_per_buffer: int = 512,
+        playout_chunk_size: int = 1024,
+        buffer_threshold_seconds: float = 0.5,
+    ):
         """
         Initialize Kokoro TTS adapter.
 
@@ -41,32 +52,40 @@ class RealtimeTTSAdapter:
             engine: Optional Kokoro engine (for dependency injection in tests)
             stream: Optional TTS stream (for dependency injection in tests)
             engine_type: Engine type (currently only supports "kokoro")
+            comma_silence_duration: Silence duration after commas (seconds)
+            sentence_silence_duration: Silence duration after sentences (seconds)
+            default_silence_duration: Default silence duration (seconds)
+            frames_per_buffer: Frames per buffer for the TTS stream
+            playout_chunk_size: Playout chunk size for the TTS stream
         """
-        if engine is None or stream is None:
-            self._initialize_kokoro()
-        else:
-            # Testing: use injected mocks
-            self.engine = engine
-            self.stream = stream
+        # Playback things
+        self.buffer_threshold_seconds = buffer_threshold_seconds
+        self.comma_silence_duration = comma_silence_duration
+        self.sentence_silence_duration = sentence_silence_duration
+        self.default_silence_duration = default_silence_duration
+
+        # Stream things
+        self.frames_per_buffer = frames_per_buffer
+        self.playout_chunk_size = playout_chunk_size
+
+        self.engine = KokoroEngine()
+        self.stream = self._initialize_stream()
 
         # State tracking
         self.total_characters_processed: int = 0
         self.is_playing: bool = False
-        self.first_audio_byte_time: float | None = None
-        self.prompt_start_time: float | None = None
-        self.response_start_time: float | None = None
+        self.first_audio_generated_time: float | None = None
+        self.transcription_received_time: float | None = None
+        self.agent_processing_start_time: float | None = None
         self.current_mode: TTSMode = TTSMode.BLOCKING
 
-    def _initialize_kokoro(self):
-        """Initialize Kokoro engine for production"""
-        try:
-            self.engine = KokoroEngine()
-            self.stream = TextToAudioStream(self.engine)
-
-        except ImportError as e:
-            raise ImportError(
-                "RealtimeTTS with Kokoro not available. Install with: uv add 'RealtimeTTS[all]' && uv add pip"
-            ) from e
+    def _initialize_stream(self):
+        """Initialize Kokoro engine and stream"""
+        return TextToAudioStream(
+            self.engine,
+            frames_per_buffer=self.frames_per_buffer,
+            # playout_chunk_size=self.playout_chunk_size,
+        )
 
     async def synthesize_and_play(self, text: str, mode: TTSMode = TTSMode.BLOCKING) -> dict[str, Any]:
         """
@@ -86,20 +105,24 @@ class RealtimeTTSAdapter:
             self.is_playing = True
             self.stream.feed(text)
 
-            # Track first audio byte time if not set
-            if self.first_audio_byte_time is None:
-                self.first_audio_byte_time = time.time()
-                if self.prompt_start_time:
-                    time_to_first_audio = self.first_audio_byte_time - self.prompt_start_time
-                    print(f"Time from prompt to first audio byte: {time_to_first_audio:.4f} seconds")
-
             if mode == TTSMode.BLOCKING:
-                # Wait for audio to complete
-                await asyncio.to_thread(self.stream.play)
+                # Wait for audio to complete with silence parameters
+                await asyncio.to_thread(
+                    self.stream.play,
+                    buffer_threshold_seconds=self.buffer_threshold_seconds,
+                    comma_silence_duration=self.comma_silence_duration,
+                    sentence_silence_duration=self.sentence_silence_duration,
+                    default_silence_duration=self.default_silence_duration,
+                )
                 self.is_playing = False
             else:
-                # Non-blocking streaming mode
-                self.stream.play_async()
+                # Non-blocking streaming mode with silence parameters
+                self.stream.play_async(
+                    buffer_threshold_seconds=self.buffer_threshold_seconds,
+                    comma_silence_duration=self.comma_silence_duration,
+                    sentence_silence_duration=self.sentence_silence_duration,
+                    default_silence_duration=self.default_silence_duration,
+                )
                 # Don't set is_playing to False immediately in streaming mode
 
             self.total_characters_processed += len(text)
@@ -118,48 +141,44 @@ class RealtimeTTSAdapter:
     def feed_text(self, text: str) -> bool:
         """Feed text to the stream for streaming synthesis."""
         try:
-            if text:  # Accept all text including whitespace for natural speech
+            if text:
                 self.stream.feed(text)
                 self.total_characters_processed += len(text)
 
                 # Track first audio byte time if not set (only for non-whitespace chunks)
-                if self.first_audio_byte_time is None and text.strip():
-                    self.first_audio_byte_time = time.time()
-                    if self.prompt_start_time:
-                        time_to_first_audio = self.first_audio_byte_time - self.prompt_start_time
-                        print(f"Time from prompt to first audio byte: {time_to_first_audio:.4f} seconds")
+                if self.first_audio_generated_time is None and text.strip():
+                    self.first_audio_generated_time = time.time()
+                    if self.transcription_received_time:
+                        time_to_first_audio = self.first_audio_generated_time - self.transcription_received_time
+                        print(
+                            f"⏱️ Time from transcription received to first audio generated: "
+                            f"{time_to_first_audio:.4f} seconds"
+                        )
 
                 return True
-            return False
+            else:
+                # Empty string signals end of stream - still feed it to the stream
+                self.stream.feed(text)
+                return True
         except Exception:
             return False
 
     def play_stream_async(self) -> bool:
-        """Play the stream asynchronously (non-blocking)."""
+        """Play the stream asynchronously (non-blocking) with configured silence durations."""
         try:
             self.current_mode = TTSMode.STREAMING
             self.is_playing = True
-            self.stream.play_async()  # Let RealtimeTTS handle warnings internally
+            self.stream.play_async(
+                buffer_threshold_seconds=self.buffer_threshold_seconds,
+                comma_silence_duration=self.comma_silence_duration,
+                sentence_silence_duration=self.sentence_silence_duration,
+                default_silence_duration=self.default_silence_duration,
+            )
             return True
         except Exception as e:
             print(f"❌ Error starting TTS playback: {e}")
             self.is_playing = False
             return False
-
-    async def play_async(self) -> dict[str, Any]:
-        """Play the previously fed text asynchronously."""
-        start_time = time.time()
-
-        try:
-            self.is_playing = True
-            await asyncio.to_thread(self.stream.play)
-            self.is_playing = False
-
-            return {"success": True, "duration": time.time() - start_time}
-
-        except Exception as e:
-            self.is_playing = False
-            return {"success": False, "error": str(e)}
 
     def set_voice(self, voice_id: str) -> bool:
         """Set the Kokoro voice (e.g., 'af_heart', 'bf_emma')."""
@@ -177,13 +196,9 @@ class RealtimeTTSAdapter:
         except Exception:
             return False
 
-    def set_prompt_start_time(self, start_time: float | None = None) -> None:
+    def set_transcription_received_time(self, start_time: float | None = None) -> None:
         """Set the prompt start time for timing calculations."""
-        self.prompt_start_time = start_time or time.time()
-
-    def set_response_start_time(self, start_time: float | None = None) -> None:
-        """Set the response start time for timing calculations."""
-        self.response_start_time = start_time or time.time()
+        self.transcription_received_time = start_time or time.time()
 
     def stop_playing(self) -> None:
         """Stop the current playback immediately using official RealtimeTTS API."""
@@ -192,7 +207,7 @@ class RealtimeTTSAdapter:
             # Only try to stop if we're actually playing
             if self.is_playing and hasattr(self.stream, "stop"):
                 self.stream.stop()
-                print("🛑 Called official stream.stop() - should stop immediately")
+                print("🛑 Speech streaming should stop immediately")
             else:
                 print("ℹ️  TTS not playing or no stop method available")
 
@@ -205,7 +220,7 @@ class RealtimeTTSAdapter:
             # Only recreate stream if the error isn't just about IDLE state
             if "IDLE" not in str(e):
                 try:
-                    self.stream = TextToAudioStream(self.engine)
+                    self.stream = self._initialize_stream()
                     print("🔄 Recreated TTS stream as fallback")
                 except Exception as e2:
                     print(f"❌ Failed to recreate TTS stream: {e2}")
@@ -214,24 +229,59 @@ class RealtimeTTSAdapter:
         finally:
             self.is_playing = False
 
+    def reset_stream(self) -> bool:
+        """Reset the TTS stream to ensure it's ready for new text after interruption."""
+        try:
+            print("🔄 Resetting TTS stream for fresh start...")
+            # Stop any current playback first
+            self.stop_playing()
+
+            # Reset timing states for new response (this is the key part)
+            self.first_audio_generated_time = None
+
+            self.agent_processing_start_time = None
+
+            print("✅ TTS stream reset successfully - reusing existing stream")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to reset TTS stream: {e}")
+            # Fallback: recreate stream if there's an issue
+            try:
+                self.stream = self._initialize_stream()
+                self.first_audio_generated_time = None
+                print("🔄 Created fresh TTS stream as fallback")
+                return True
+            except Exception as e2:
+                print(f"❌ Failed to create fresh TTS stream: {e2}")
+                return False
+
+    def get_silence_durations(self) -> dict[str, float]:
+        """Get the current silence durations configuration."""
+        return {
+            "comma_silence_duration": self.comma_silence_duration,
+            "sentence_silence_duration": self.sentence_silence_duration,
+            "default_silence_duration": self.default_silence_duration,
+        }
+
     def get_stats(self) -> dict[str, Any]:
         """Get adapter statistics."""
         stats = {
             "total_characters_processed": self.total_characters_processed,
             "is_playing": self.is_playing,
             "engine_type": "KokoroEngine",
-            "first_audio_byte_time": self.first_audio_byte_time,
+            "first_audio_generated_time": self.first_audio_generated_time,
             "current_mode": self.current_mode.value,
-            "prompt_start_time": self.prompt_start_time,
-            "response_start_time": self.response_start_time,
+            "transcription_received_time": self.transcription_received_time,
+            "agent_processing_start_time": self.agent_processing_start_time,
+            "silence_config": self.get_silence_durations(),
         }
 
         # Add calculated timing metrics
-        if self.prompt_start_time and self.first_audio_byte_time:
-            stats["time_to_first_audio"] = self.first_audio_byte_time - self.prompt_start_time
+        if self.transcription_received_time and self.first_audio_generated_time:
+            stats["time_to_first_audio"] = self.first_audio_generated_time - self.transcription_received_time
 
-        if self.response_start_time and self.first_audio_byte_time:
-            stats["response_to_audio_time"] = self.first_audio_byte_time - self.response_start_time
+        if self.agent_processing_start_time and self.first_audio_generated_time:
+            stats["response_to_audio_time"] = self.first_audio_generated_time - self.agent_processing_start_time
 
         return stats
 
@@ -239,7 +289,7 @@ class RealtimeTTSAdapter:
         """Reset adapter statistics."""
         self.total_characters_processed = 0
         self.is_playing = False
-        self.first_audio_byte_time = None
-        self.prompt_start_time = None
-        self.response_start_time = None
+        self.first_audio_generated_time = None
+        self.transcription_received_time = None
+        self.agent_processing_start_time = None
         self.current_mode = TTSMode.BLOCKING

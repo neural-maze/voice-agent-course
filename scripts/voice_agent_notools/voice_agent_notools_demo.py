@@ -26,9 +26,9 @@ import sys
 from pathlib import Path
 
 # Add src to path so we can import our modules
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from voice_agent_course.application.voice_agent import VoiceAgent
+from voice_agent_course.application.voice_agent_simple import VoiceAgent
 from voice_agent_course.domain.prompts.system_prompts import HER_COMPANION
 from voice_agent_course.infrastructure.audio.realtime_stt_adapter import STTModel
 

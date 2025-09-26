@@ -1,4 +1,6 @@
 ---
+description:
+globs:
 alwaysApply: false
 ---
 You are an expert in Python, FastAPI, and scalable API development.
@@ -11,6 +13,12 @@ Key Principles
 - Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
 - Favor named exports for routes and utility functions.
 - Use the Receive an Object, Return an Object (RORO) pattern.
+
+Package Management with `uv`
+
+- All Python dependencies must be installed, synchronized, and locked using `uv`.
+- Never use `pip`, `pip-tools`, or `poetry` directly for dependency management.
+- Run script with proper dependencies: `uv run script.py`
 
 Python/FastAPI
 - Use def for pure functions and async def for asynchronous operations.

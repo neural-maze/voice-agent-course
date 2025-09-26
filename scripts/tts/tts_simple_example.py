@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 # Add src to path so we can import our modules
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from voice_agent_course.infrastructure.audio.realtime_tts_adapter import RealtimeTTSAdapter
 
@@ -75,7 +75,7 @@ async def test_kokoro_voices():
         print("\n📊 Final Statistics:")
         print(f"   Total characters processed: {stats['total_characters_processed']}")
         print(f"   Engine type: {stats['engine_type']}")
-        print(f"   First audio time: {stats['first_audio_byte_time']}")
+        print(f"   First audio time: {stats['first_audio_generated_time']}")
 
         print("\n🎉 Multilingual test completed!")
 

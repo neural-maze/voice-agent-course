@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 # Add src to path so we can import our modules
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from voice_agent_course.infrastructure.audio.realtime_stt_adapter import RealtimeSTTAdapter, STTModel
 

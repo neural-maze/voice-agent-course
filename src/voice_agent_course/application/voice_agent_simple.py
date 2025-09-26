@@ -59,8 +59,8 @@ class VoiceAgent:
 
         # Timing metrics
         self.prompt_start_time: float | None = None
-        self.response_start_time: float | None = None
-        self.first_audio_byte_time: float | None = None
+        self.agent_processing_start_time: float | None = None
+        self.first_audio_generated_time: float | None = None
 
         print("✅ Voice Agent initialized!")
 
@@ -145,7 +145,7 @@ class VoiceAgent:
                     break  # Exit signal
 
                 print(f"🤖 Processing: {user_input}")
-                self.response_start_time = time.time()
+                self.agent_processing_start_time = time.time()
 
                 # Stream response from LLM
                 async for chunk in self.llm_service.stream_chat(
@@ -175,14 +175,8 @@ class VoiceAgent:
                 if chunk is None:
                     # End of response - reset for next response
                     is_response_active = False
-                    self.first_audio_byte_time = None
+                    self.first_audio_generated_time = None
                     continue
-
-                # Track timing for first audio byte
-                if self.first_audio_byte_time is None and self.prompt_start_time:
-                    self.first_audio_byte_time = time.time()
-                    time_to_first_audio = self.first_audio_byte_time - self.prompt_start_time
-                    print(f"\n⏱️  Time from prompt to first audio: {time_to_first_audio:.4f}s")
 
                 # Feed text chunk
                 self.tts_adapter.feed_text(chunk)
@@ -246,7 +240,7 @@ class VoiceAgent:
             "llm_stats": self.llm_service.get_stats(),
             "timing": {
                 "prompt_start_time": self.prompt_start_time,
-                "response_start_time": self.response_start_time,
-                "first_audio_byte_time": self.first_audio_byte_time,
+                "agent_processing_start_time": self.agent_processing_start_time,
+                "first_audio_generated_time": self.first_audio_generated_time,
             },
         }

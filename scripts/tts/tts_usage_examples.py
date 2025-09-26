@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 # Add src to path so we can import our modules
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from voice_agent_course.infrastructure.audio.realtime_tts_adapter import RealtimeTTSAdapter, TTSMode
 
@@ -80,7 +80,7 @@ async def demo_streaming_mode():
     ]
 
     # Set timing for metrics (like in your full implementation)
-    adapter.set_prompt_start_time()
+    adapter.set_transcription_received_time()
 
     print("🔊 Starting streaming conversation...")
 

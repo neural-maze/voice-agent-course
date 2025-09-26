@@ -41,7 +41,6 @@ class RealtimeSTTAdapter:
         self,
         engine: STTEngine | None = None,
         on_transcription: Callable[[str], None] | None = None,
-        on_partial_transcription: Callable[[str], None] | None = None,
         on_recording_start: Callable[[], None] | None = None,
         model: STTModel = STTModel.TINY_EN,
         language: str = "en",
@@ -54,32 +53,30 @@ class RealtimeSTTAdapter:
         Args:
             engine: Optional STT engine (for dependency injection in tests)
             on_transcription: Callback for final transcriptions
-            on_partial_transcription: Callback for partial/interim transcriptions
             model: STT model to use (affects speed vs accuracy)
             language: Language for transcription
             enable_realtime: Enable real-time partial transcriptions
             sensitivity_config: Custom sensitivity settings
         """
         self.on_transcription = on_transcription
-        self.on_partial_transcription = on_partial_transcription
         self.on_recording_start = on_recording_start
         self.model = model
         self.language = language
         self.enable_realtime = enable_realtime
 
-        # Default sensitivity configuration based on voice agent example
+        # Default sensitivity configuration - adjusted for slightly longer wait times
         self.sensitivity_config = sensitivity_config or {
-            "silero_sensitivity": 0.01,
+            "silero_sensitivity": 0.6,
             "webrtc_sensitivity": 3,
-            "post_speech_silence_duration": 0.1,
+            "post_speech_silence_duration": 0.3,
             "min_length_of_recording": 0.2,
-            "min_gap_between_recordings": 0,
+            "min_gap_between_recordings": 0.1,
         }
 
         # State tracking
         self.total_transcriptions: int = 0
         self.last_transcription_time: float | None = None
-        self.is_active: bool = False  # Whether the adapter is active/initialized
+        self.is_active: bool = False
 
         if engine is None:
             # Production: import and create real objects
@@ -111,7 +108,7 @@ class RealtimeSTTAdapter:
             if self.enable_realtime:
                 recorder_config.update(
                     {
-                        "on_realtime_transcription_update": self._on_partial_transcription,
+                        "enable_realtime_transcription": True,
                         "on_realtime_transcription_stabilized": self._on_transcription,
                     }
                 )
@@ -129,7 +126,7 @@ class RealtimeSTTAdapter:
 
     def _on_recording_start(self, *args, **kwargs):
         """Called when recording starts"""
-        print("🎤 Recording started...")
+        print("\n🎤 Recording started...")
 
         # Call the user-provided callback for immediate interruption
         if self.on_recording_start:
