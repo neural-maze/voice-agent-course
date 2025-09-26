@@ -18,13 +18,17 @@ class EnhancedVoiceAgent:
 
     def __init__(
         self,
-        model: str = "llama-3.3-70b-versatile",
+        llm_provider: str = "groq",
+        llm_model: str | None = None,
+        llm_temperature: float = 0.7,
     ):
         """
         Initialize the Enhanced Voice Agent.
 
         Args:
-            model: Ollama model name
+            llm_provider: LLM provider (groq, ollama)
+            llm_model: Model name (uses provider default if None)
+            llm_temperature: Model temperature
         """
         print("🤖 Initializing Enhanced Voice Agent with LangGraph tools...")
 
@@ -40,7 +44,11 @@ class EnhancedVoiceAgent:
         )
 
         # Initialize LangGraph agent for conversation and tool orchestration
-        self.langgraph_agent = LangGraphAgent(model=model)
+        self.langgraph_agent = LangGraphAgent(
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            llm_temperature=llm_temperature,
+        )
 
         # Queues for async communication
         self.input_queue = asyncio.Queue()
@@ -189,7 +197,6 @@ class EnhancedVoiceAgent:
         print("💡 Say something to begin, or say 'exit' to quit")
         print("🛠️  Try asking me to:")
         print("   - 'Get me a random number'")
-        print("   - 'Calculate the 10th Fibonacci number'")
         print("   - 'What's the weather in New York?'")
 
         try:

@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import sys
 from pathlib import Path
@@ -8,70 +9,56 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from voice_agent_course.application.voice_agent_enhanced import EnhancedVoiceAgent
 
 
-async def demo_enhanced_agent():
-    """Demo the enhanced voice agent with tools"""
-    print("🛠️  Enhanced Voice Agent Demo")
-    print("=" * 60)
-    print("This will start a voice conversation with an AI agent that can use tools!")
-    print()
-    print("💡 Instructions:")
-    print("   - Speak naturally, like talking to a smart assistant")
-    print("   - Ask for tasks that require tools (see examples below)")
-    print("   - Try interrupting during tool execution!")
-    print("   - Say 'exit', 'quit', or 'goodbye' to end")
-    print()
-    print("🛠️  Try these commands:")
-    print("   - 'Get me a random number'")
-    print("   - 'Calculate the 15th Fibonacci number'")
-    print("   - 'What's the weather like in Paris?'")
-    print("   - 'Give me two random numbers' (multiple tool calls)")
-    print()
-    print("🎯 Test Interruption:")
-    print("   - Ask for a random number, then start talking while it's processing")
-    print("   - The agent should handle interruption gracefully")
-    print()
-    print("⚠️  Make sure:")
-    print("   - Your microphone is working")
-    print("   - You are using headphones (recommended for best experience)")
-    print()
+async def main():
+    """Enhanced Voice Agent Demo with Tools"""
+    parser = argparse.ArgumentParser(description="Enhanced Voice Agent Demo with Tools")
+    parser.add_argument("--llm-provider", default="groq", help="LLM provider to use (default: groq)")
+    parser.add_argument("--llm-model", help="Specific model to use (optional, uses provider default)")
 
-    input("Press Enter to start your enhanced conversation...")
+    args = parser.parse_args()
+
+    print("🛠️  Enhanced Voice Agent Demo")
+    print("=" * 50)
+    print(f"🤖 Provider: {args.llm_provider}")
+    if args.llm_model:
+        print(f"🧠 Model: {args.llm_model}")
+    print()
+    print("💡 Try: 'Get me a random number', 'Weather in Paris'")
+    print("🎯 Test interruption by speaking while tools are running")
+    print("⏹️  Say 'exit', 'quit', or 'goodbye' to end")
+    print()
 
     try:
-        # Create and start the enhanced voice agent
+        # Create the agent
+        print("🔧 Creating Enhanced Voice Agent...")
         agent = EnhancedVoiceAgent(
-            model="meta-llama/llama-4-maverick-17b-128e-instruct",
+            llm_provider=args.llm_provider,
+            llm_model=args.llm_model,
         )
+        print("✅ Agent created successfully!")
+
+        # Show agent stats
+        try:
+            stats = agent.get_stats()
+            langgraph_stats = stats["langgraph_agent_stats"]
+            print(f"   Provider: {langgraph_stats['llm_provider']}")
+            print(f"   Model: {langgraph_stats['llm_model']}")
+            print(f"   Temperature: {langgraph_stats['temperature']}")
+            print(f"   Tools available: {langgraph_stats['tools_count']}")
+            print(f"   Tool names: {', '.join(langgraph_stats['tool_names'])}")
+            print()
+        except Exception as e:
+            print(f"❌ Failed to get agent stats: {e}")
+            return
+
+        input("Press Enter to start...")
 
         await agent.run_conversation()
-
     except KeyboardInterrupt:
-        print("\n👋 Enhanced voice agent stopped by user")
+        print("\n👋 Demo stopped by user")
     except Exception as e:
-        print(f"❌ Error running enhanced voice agent: {e}")
-        print("\n🔧 Troubleshooting:")
-        print("   - Is your microphone working?")
-        print("   - Are LangGraph dependencies installed? (uv sync)")
-
-
-async def main():
-    """Main demo runner"""
-    print("🎙️  Enhanced Voice Agent Demo")
-    print("=" * 60)
-    print("Natural voice conversations with an AI agent that can use tools!")
-    print()
-
-    while True:
-        await demo_enhanced_agent()
+        print(f"❌ Error: {e}")
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Enhanced demo interrupted by user")
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
-        import traceback
-
-        traceback.print_exc()
+    asyncio.run(main())

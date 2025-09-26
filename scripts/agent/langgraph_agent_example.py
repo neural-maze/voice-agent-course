@@ -1,70 +1,83 @@
 #!/usr/bin/env python3
-"""Simple example showing how to use the LangGraph agent."""
+"""LangGraph Agent Demo with invoke and stream testing."""
 
+import argparse
 import asyncio
 import os
 import sys
+import traceback
 from pathlib import Path
 
-# Add the src directory to the path so we can import our modules
+# Add src to path so we can import our modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from voice_agent_course.domain.agents.langgraph_agent import LangGraphAgent
 
 
 async def main():
-    """Main example function."""
-    print("🚀 LangGraph Agent Example")
-    print("=" * 50)
+    """LangGraph Agent Demo"""
+    parser = argparse.ArgumentParser(description="LangGraph Agent Demo")
+    parser.add_argument("--llm-provider", default="groq", help="LLM provider to use (default: groq)")
+    parser.add_argument("--llm-model", help="Specific model to use (optional, uses provider default)")
 
-    # Check for API key
-    if not os.getenv("GROQ_API_KEY"):
-        print("❌ GROQ_API_KEY environment variable not set!")
-        print("   Please set it with: export GROQ_API_KEY=your_api_key_here")
-        print("   You can get a free API key from: https://console.groq.com/")
-        return
+    args = parser.parse_args()
+
+    print("🚀 LangGraph Agent Demo")
+    print("=" * 50)
+    print(f"🤖 Provider: {args.llm_provider}")
+    if args.llm_model:
+        print(f"🧠 Model: {args.llm_model}")
+    print()
 
     try:
         # Create the agent
         print("🔧 Creating LangGraph agent...")
-        agent = LangGraphAgent(model="meta-llama/llama-4-maverick-17b-128e-instruct")
+        try:
+            agent = LangGraphAgent(
+                llm_provider=args.llm_provider,
+                llm_model=args.llm_model,
+            )
+            print("✅ Agent created successfully!")
+        except Exception as e:
+            print(f"❌ Failed to create agent: {e}")
+            traceback.print_exc()
+            return
 
         # Show agent stats
-        stats = agent.get_stats()
-        print(f"✅ Agent created successfully!")
-        print(f"   Model: {stats['model']}")
-        print(f"   Tools available: {stats['tools_count']}")
-        print(f"   Tool names: {', '.join(stats['tool_names'])}")
-        print()
+        try:
+            stats = agent.get_stats()
+            print(f"   Provider: {stats['llm_provider']}")
+            print(f"   Model: {stats['llm_model']}")
+            print(f"   Temperature: {stats['temperature']}")
+            print(f"   Tools available: {stats['tools_count']}")
+            print(f"   Tool names: {', '.join(stats['tool_names'])}")
+            print()
+        except Exception as e:
+            print(f"❌ Failed to get agent stats: {e}")
+            traceback.print_exc()
+            return
 
-        # Example 1: Simple invoke
-        print("📝 Example 1: Simple invoke")
+        print("📝 Testing streaming functionality")
         print("-" * 30)
-        user_message = "what is the weather in San Francisco?"
-        print(f"User: {user_message}")
-
-        response = await agent.invoke(user_message)
-        print(f"Agent: {response}")
-        print()
-
-        # Example 2: Streaming response
-        print("📝 Example 2: Streaming response")
-        print("-" * 30)
-        user_message = "get me a random number and calculate the 5th fibonacci number"
+        user_message = "Get me a random number and the weather in Tokyo"
         print(f"User: {user_message}")
         print("Agent: ", end="")
 
         async for chunk in agent.stream(user_message):
             if chunk:
                 print(chunk, end="", flush=True)
+
         print("\n")
 
-        print("✅ Examples completed successfully!")
+        print("✅ Tests completed successfully!")
 
+    except KeyboardInterrupt:
+        print("\n👋 Demo stopped by user")
     except Exception as e:
         print(f"❌ Error: {e}")
+        print("\n🔍 Full traceback:")
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
-    # Run the async main function
     asyncio.run(main())

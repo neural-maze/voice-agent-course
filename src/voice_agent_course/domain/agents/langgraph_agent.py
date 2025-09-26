@@ -1,14 +1,14 @@
-"""LangGraph agent using prebuilt create_react_agent with Groq."""
+"""LangGraph agent using prebuilt create_react_agent with configurable LLM providers."""
 
 from collections.abc import AsyncGenerator
 from typing import Any
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 
 from voice_agent_course.domain.prompts.system_prompts import DEFAULT_SYSTEM_PROMPT
+from voice_agent_course.infrastructure.llm_providers import LLMProviderFactory
 
 from ..tools.mock_tools import MOCK_TOOLS
 
@@ -16,24 +16,34 @@ load_dotenv()
 
 
 class LangGraphAgent:
-    """LangGraph agent using prebuilt create_react_agent with Groq model."""
+    """LangGraph agent using prebuilt create_react_agent with configurable LLM providers."""
 
-    def __init__(self, model: str = "llama-3.3-70b-versatile"):
+    def __init__(
+        self,
+        llm_provider: str = "groq",
+        llm_model: str | None = None,
+        llm_temperature: float = 0.7,
+    ):
         """
         Initialize LangGraph agent.
 
         Args:
-            model: Groq model name
+            llm_provider: LLM provider (groq, ollama)
+            llm_model: Model name (uses provider default if None)
+            llm_temperature: Model temperature
         """
-        self.model = model
+        self.llm_provider = llm_provider
+        self.llm_model = llm_model or LLMProviderFactory.get_default_model(llm_provider)
+        self.llm_temperature = llm_temperature
         self.max_history_turns = 3
         self.conversation_history: list[BaseMessage] = []
-        self.tools = list(MOCK_TOOLS)  # Make a copy so we can modify it
+        self.tools = list(MOCK_TOOLS)
 
-        # Initialize Groq LLM
-        self.llm = ChatGroq(
-            model=self.model,
-            temperature=0.7,
+        # Initialize LLM using factory
+        self.llm = LLMProviderFactory.create_llm(
+            provider=self.llm_provider,
+            model=self.llm_model,
+            temperature=self.llm_temperature,
         )
 
         # Create the prebuilt ReAct agent
@@ -46,61 +56,6 @@ class LangGraphAgent:
             tools=self.tools,
             prompt=DEFAULT_SYSTEM_PROMPT,
         )
-
-    async def invoke(self, user_message: str) -> str:
-        """
-        Invoke the agent with a user message.
-
-        Args:
-            user_message: User's input message
-
-        Returns:
-            str: Agent's response
-        """
-        try:
-            # Prepare the input with conversation history
-            messages = self._get_recent_history() + [HumanMessage(content=user_message)]
-            input_data = {"messages": messages}
-
-            # Invoke the agent
-            result = await self.agent.ainvoke(input_data)
-
-            # Extract the final message content
-            response_content = ""
-            if result and "messages" in result and result["messages"]:
-                # Look for the final AI message (not tool calls)
-                for message in reversed(result["messages"]):
-                    # Skip tool messages and tool calls - we want the final AI response
-                    if (
-                        hasattr(message, "content")
-                        and message.content
-                        and message.content.strip()
-                        and not (hasattr(message, "tool_calls") and message.tool_calls)
-                        and getattr(message, "type", None) != "tool"
-                    ):
-                        response_content = message.content
-                        break
-
-                # Fallback: return the last message if no proper AI message found
-                if not response_content:
-                    final_message = result["messages"][-1]
-                    response_content = (
-                        final_message.content if hasattr(final_message, "content") else str(final_message)
-                    )
-
-            if not response_content:
-                response_content = "No response generated."
-
-            # Update conversation history
-            self._update_history(user_message, response_content)
-
-            return response_content
-
-        except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            # Still update history for context
-            self._update_history(user_message, error_msg)
-            return error_msg
 
     async def stream(self, user_message: str) -> AsyncGenerator[str, None]:
         """
@@ -189,7 +144,9 @@ class LangGraphAgent:
     def get_stats(self) -> dict[str, Any]:
         """Get agent statistics."""
         return {
-            "model": self.model,
+            "llm_provider": self.llm_provider,
+            "llm_model": self.llm_model,
+            "temperature": self.llm_temperature,
             "tools_count": len(self.tools),
             "tool_names": [tool.name for tool in self.tools],
             "max_history_turns": self.max_history_turns,

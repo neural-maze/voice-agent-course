@@ -43,7 +43,7 @@ class RealtimeTTSAdapter:
         default_silence_duration: float = 0.0,
         frames_per_buffer: int = 512,
         playout_chunk_size: int = 1024,
-        buffer_threshold_seconds: float = 0.5,
+        buffer_threshold_seconds: float = 1.0,
     ):
         """
         Initialize Kokoro TTS adapter.
@@ -65,6 +65,7 @@ class RealtimeTTSAdapter:
         self.default_silence_duration = default_silence_duration
 
         # Stream things
+        # NOTE: see https://github.com/KoljaB/RealtimeTTS/releases/tag/v0.4.40
         self.frames_per_buffer = frames_per_buffer
         self.playout_chunk_size = playout_chunk_size
 

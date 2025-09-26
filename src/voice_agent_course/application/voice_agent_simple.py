@@ -5,7 +5,7 @@ from typing import Any
 from ..domain.prompts.system_prompts import DEFAULT_SYSTEM_PROMPT
 from ..infrastructure.audio.realtime_stt_adapter import RealtimeSTTAdapter, STTModel
 from ..infrastructure.audio.realtime_tts_adapter import RealtimeTTSAdapter
-from ..infrastructure.llm_providers.ollama import OllamaService
+from ..infrastructure.llm_providers.ollama import OllamaClient
 
 
 class VoiceAgent:
@@ -47,7 +47,7 @@ class VoiceAgent:
                 "min_gap_between_recordings": 0,
             },
         )
-        self.llm_service = OllamaService(model=model)
+        self.llm_service = OllamaClient(model=model)
 
         # Queues for async communication
         self.input_queue = asyncio.Queue()

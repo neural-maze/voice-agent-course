@@ -32,7 +32,6 @@ async def test_agent_invoke():
     test_messages = [
         "what is the weather in sf",
         "get me a random number",
-        "calculate the 8th fibonacci number",
         "what's the weather in New York?",
     ]
 

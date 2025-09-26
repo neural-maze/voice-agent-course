@@ -24,40 +24,6 @@ async def get_random_number() -> str:
 
 
 @tool
-async def calculate_fibonacci(n: int) -> str:
-    """
-    Calculate the nth Fibonacci. Slow operation.
-
-    Args:
-        n: The position in the Fibonacci sequence (1-20 only for safety)
-
-    Returns:
-        str: The nth Fibonacci number
-    """
-    # Convert to int if it's a string (LangChain sometimes passes string arguments)
-    try:
-        n = int(n)
-    except (ValueError, TypeError):
-        return "Please provide a valid number."
-
-    # Validate input
-    if n < 1 or n > 20:
-        return "Please provide a number between 1 and 20."
-
-    # Simulate processing time
-    # await asyncio.sleep(3)
-
-    # Calculate Fibonacci
-    def fib(num: int) -> int:
-        if num <= 2:
-            return 1
-        return fib(num - 1) + fib(num - 2)
-
-    result = fib(n)
-    return f"The {n}th Fibonacci number is {result}"
-
-
-@tool
 async def get_weather(city: str) -> str:
     """
     Get weather information for a city. Uses external API call.
@@ -84,6 +50,5 @@ async def get_weather(city: str) -> str:
 # Tool registry for easy access
 MOCK_TOOLS = [
     get_random_number,
-    calculate_fibonacci,
     get_weather,
 ]
