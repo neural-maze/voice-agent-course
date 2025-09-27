@@ -1,5 +1,6 @@
 import asyncio
 import time
+import traceback
 from enum import Enum
 from typing import Any
 
@@ -164,7 +165,8 @@ class RealtimeTTSAdapter:
             )
             return True
         except Exception as e:
-            logger.info(f"❌ Error starting TTS playback: {e}")
+            logger.error(f"❌ Error starting TTS playback: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
             self.is_playing = False
             return False
 
@@ -204,7 +206,7 @@ class RealtimeTTSAdapter:
             self.current_mode = TTSMode.BLOCKING
 
         except Exception as e:
-            logger.info(f"⚠️  Error calling stream.stop(): {e}")
+            logger.error(f"⚠️  Error calling stream.stop(): {e}")
             # Only recreate stream if the error isn't just about IDLE state
             if "IDLE" not in str(e):
                 try:

@@ -292,4 +292,5 @@ class RealtimeSTTAdapter:
             self.is_active = False
 
         except Exception as e:
-            logger.info(f"⚠️  Error during STT shutdown: {e}")
+            logger.error(f"⚠️  Error during STT shutdown: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
