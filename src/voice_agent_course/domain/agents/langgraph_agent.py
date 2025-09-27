@@ -122,33 +122,12 @@ class LangGraphAgent:
         if len(self.conversation_history) > max_messages:
             self.conversation_history = self.conversation_history[-max_messages:]
 
-    def clear_history(self) -> None:
-        """Clear conversation history."""
-        self.conversation_history.clear()
-
-    def add_tool(self, tool) -> None:
-        """Add a new tool to the agent dynamically."""
-        if tool not in self.tools:
-            self.tools.append(tool)
-            self._create_agent()  # Recreate agent with new tools
-
-    def remove_tool(self, tool_name: str) -> bool:
-        """Remove a tool from the agent by name."""
-        original_count = len(self.tools)
-        self.tools = [tool for tool in self.tools if tool.name != tool_name]
-
-        if len(self.tools) < original_count:
-            self._create_agent()  # Recreate agent without the removed tool
-            return True
-        return False
-
-    def get_stats(self) -> dict[str, Any]:
-        """Get agent statistics."""
+    def get_info(self) -> dict[str, Any]:
+        """Get information about the agent."""
         return {
             "llm_provider": self.llm_provider,
             "llm_model": self.llm_model,
-            "temperature": self.llm_temperature,
+            "llm_temperature": self.llm_temperature,
             "tools_count": len(self.tools),
             "tool_names": [tool.name for tool in self.tools],
-            "max_history_turns": self.max_history_turns,
         }

@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import sys
+import traceback
 from pathlib import Path
 
 # Add src to path so we can import our modules
@@ -28,33 +29,34 @@ async def main():
     try:
         # Create the agent
         print("🔧 Creating Enhanced Voice Agent...")
-        agent = VoiceAgent(
+        voice_agent = VoiceAgent(
             llm_provider=args.llm_provider,
             llm_model=args.llm_model,
         )
         print("✅ Agent created successfully!")
 
-        # Show agent stats
+        # Show agent info
         try:
-            stats = agent.get_stats()
-            langgraph_stats = stats["langgraph_agent_stats"]
-            print(f"   Provider: {langgraph_stats['llm_provider']}")
-            print(f"   Model: {langgraph_stats['llm_model']}")
-            print(f"   Temperature: {langgraph_stats['temperature']}")
-            print(f"   Tools available: {langgraph_stats['tools_count']}")
-            print(f"   Tool names: {', '.join(langgraph_stats['tool_names'])}")
+            langgraph_agent_info = voice_agent.get_info()["langgraph_agent"]
+            print(f"   Provider: {langgraph_agent_info['llm_provider']}")
+            print(f"   Model: {langgraph_agent_info['llm_model']}")
+            print(f"   Temperature: {langgraph_agent_info['llm_temperature']}")
+            print(f"   Tools available: {langgraph_agent_info['tools_count']}")
+            print(f"   Tool names: {', '.join(langgraph_agent_info['tool_names'])}")
             print()
         except Exception as e:
             print(f"❌ Failed to get agent stats: {e}")
+            print(f"Full traceback:\n{traceback.format_exc()}")
             return
 
         input("Press Enter to start...")
 
-        await agent.run_conversation()
+        await voice_agent.run_conversation()
     except KeyboardInterrupt:
         print("\n👋 Demo stopped by user")
     except Exception as e:
         print(f"❌ Error: {e}")
+        print(f"Full traceback:\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":

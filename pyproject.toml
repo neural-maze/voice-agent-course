@@ -14,7 +14,7 @@ dependencies = [
   "pydantic",
   "pydantic-settings",
   "ipykernel",
-  "RealtimeTTS[all]",
+  "RealtimeTTS[kokoro]",
   "RealtimeSTT",
   "pip>=25.2",
   "langchain==1.0.0a9",

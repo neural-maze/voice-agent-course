@@ -1,8 +1,6 @@
 import asyncio
-import time
 import traceback
 from collections.abc import Callable
-from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -38,7 +36,7 @@ class RealtimeSTTAdapter:
         on_recording_start: Callable[[], None] | None = None,
         model: STTModel = STTModel.TINY_EN,
         language: str = "en",
-        enable_realtime: bool = True,
+        enable_realtime: bool = False,
         sensitivity_config: dict[str, Any] | None = None,
     ):
         """
@@ -67,11 +65,6 @@ class RealtimeSTTAdapter:
             "min_gap_between_recordings": 0.1,
         }
 
-        # State tracking
-        self.total_transcriptions: int = 0
-        self.last_transcription_time: float | None = None
-        self.is_active: bool = False
-
         self._initialize_engine_stt()
 
     def _initialize_engine_stt(self):
@@ -97,13 +90,12 @@ class RealtimeSTTAdapter:
                 recorder_config.update(
                     {
                         "enable_realtime_transcription": True,
-                        "on_realtime_transcription_stabilized": self._on_transcription,
+                        # add callbacks for realtime transcriptions
                     }
                 )
 
             # Create the recorder with enhanced configuration
             self.engine = AudioToTextRecorder(**recorder_config)
-            self.is_active = True
             logger.info("✅ STT engine initialized and ready!")
 
         except Exception as e:
@@ -133,30 +125,16 @@ class RealtimeSTTAdapter:
         if self.on_partial_transcription and text.strip():
             self.on_partial_transcription(text)
 
-    def _on_transcription(self, text: str, *args, **kwargs):
-        """Called for final transcriptions"""
-        if text.strip():
-            self.total_transcriptions += 1
-            self.last_transcription_time = time.time()
-
-            if self.on_transcription:
-                self.on_transcription(text)
-
-    async def get_text_blocking(self) -> dict[str, Any]:
+    async def get_text_blocking(self) -> str | None:
         """
-        Get text using blocking approach (like voice agent example).
-        This is the main method that matches RealtimeSTT's .text() API.
+        Get transcribed text or None if failed.
 
         Returns:
-            dict: Transcription result with metadata
+            str | None: Transcribed text or None if no speech detected or error occurred
         """
-        if not self.is_active:
-            return {"success": False, "error": "STT adapter not initialized"}
-
         if not hasattr(self, "engine") or self.engine is None:
-            return {"success": False, "error": "STT engine not available"}
-
-        start_time = time.time()
+            logger.error("STT engine not available")
+            return None
 
         try:
             # Use blocking text retrieval with callback - this is the core RealtimeSTT API
@@ -171,126 +149,17 @@ class RealtimeSTTAdapter:
 
             if transcribed_text and transcribed_text.strip():
                 text = transcribed_text.strip()
-                self.total_transcriptions += 1
-                self.last_transcription_time = time.time()
 
                 # Manually call the callback if one was provided
                 if self.on_transcription:
                     self.on_transcription(text)
 
-                return {
-                    "success": True,
-                    "text": text,
-                    "duration": time.time() - start_time,
-                    "timestamp": datetime.now().isoformat(),
-                    "method": "blocking",
-                }
+                return text
             else:
-                return {
-                    "success": False,
-                    "error": "No speech detected or empty transcription",
-                    "duration": time.time() - start_time,
-                }
+                # No speech detected - this is normal, don't log as error
+                return None
 
         except Exception as e:
-            return {"success": False, "error": str(e), "duration": time.time() - start_time}
-
-    async def listen_once(self, timeout: float = 10.0) -> dict[str, Any]:
-        """
-        Listen for a single utterance and return the transcription.
-        This is a wrapper around get_text_blocking() for compatibility.
-
-        Args:
-            timeout: Maximum time to wait for speech (not used in RealtimeSTT)
-
-        Returns:
-            dict: Transcription result with metadata
-        """
-        # RealtimeSTT doesn't support timeout, so we just call the blocking method
-        return await self.get_text_blocking()
-
-    async def continuous_listen(
-        self, duration: float | None = None, on_speech: Callable[[str], None] | None = None
-    ) -> dict[str, Any]:
-        """
-        Listen continuously for speech using multiple calls to get_text_blocking().
-
-        Args:
-            duration: How long to listen (None = indefinitely)
-            on_speech: Callback for each transcription
-
-        Returns:
-            dict: Session metadata
-        """
-        if not self.is_active:
-            return {"success": False, "error": "STT adapter not initialized", "transcriptions": []}
-
-        session_start = time.time()
-        transcriptions = []
-
-        try:
-            # If duration is specified, listen for that long
-            if duration:
-                end_time = session_start + duration
-                while time.time() < end_time:
-                    result = await self.get_text_blocking()
-                    if result["success"]:
-                        text = result["text"]
-                        transcription_entry = {
-                            "text": text,
-                            "timestamp": result["timestamp"],
-                            "session_time": time.time() - session_start,
-                        }
-                        transcriptions.append(transcription_entry)
-
-                        if on_speech:
-                            on_speech(text)
-
-                    # Small delay to prevent overwhelming the system
-                    await asyncio.sleep(0.1)
-            else:
-                # Indefinite listening - not practical with blocking API
-                return {
-                    "success": False,
-                    "error": "Indefinite continuous listening not supported with blocking API",
-                    "transcriptions": [],
-                }
-
-            return {
-                "success": True,
-                "transcriptions": transcriptions,
-                "session_duration": time.time() - session_start,
-                "total_utterances": len(transcriptions),
-            }
-
-        except Exception as e:
-            return {"success": False, "error": str(e), "transcriptions": transcriptions}
-
-    def get_stats(self) -> dict[str, Any]:
-        """Get adapter statistics"""
-        return {
-            "is_active": self.is_active,
-            "total_transcriptions": self.total_transcriptions,
-            "last_transcription_time": self.last_transcription_time,
-            "engine_type": type(self.engine).__name__ if hasattr(self, "engine") else None,
-            "model": self.model.value,
-            "language": self.language,
-            "enable_realtime": self.enable_realtime,
-            "sensitivity_config": self.sensitivity_config,
-        }
-
-    def reset_stats(self) -> None:
-        """Reset adapter statistics"""
-        self.total_transcriptions = 0
-        self.last_transcription_time = None
-
-    def shutdown(self) -> None:
-        """Clean shutdown of the STT engine"""
-        try:
-            if hasattr(self.engine, "shutdown"):
-                self.engine.shutdown()
-            self.is_active = False
-
-        except Exception as e:
-            logger.error(f"⚠️  Error during STT shutdown: {e}")
+            logger.error(f"STT error: {e}")
             logger.error(f"Full traceback:\n{traceback.format_exc()}")
+            return None

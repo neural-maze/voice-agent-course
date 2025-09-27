@@ -20,7 +20,7 @@ class LLMProviderFactory:
 
     # Default models for each provider
     DEFAULT_MODELS = {
-        LLMProvider.GROQ: "meta-llama/llama-4-scout-17b-16e-instruct",
+        LLMProvider.GROQ: "meta-llama/llama-4-maverick-17b-128e-instruct",
         LLMProvider.OLLAMA: "qwen3:4b-instruct-2507-q4_K_M",
     }
 

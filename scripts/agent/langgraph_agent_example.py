@@ -32,7 +32,7 @@ async def main():
         # Create the agent
         print("🔧 Creating LangGraph agent...")
         try:
-            agent = LangGraphAgent(
+            langgraph_agent = LangGraphAgent(
                 llm_provider=args.llm_provider,
                 llm_model=args.llm_model,
             )
@@ -42,17 +42,18 @@ async def main():
             traceback.print_exc()
             return
 
-        # Show agent stats
+        # Show agent info
         try:
-            stats = agent.get_stats()
-            print(f"   Provider: {stats['llm_provider']}")
-            print(f"   Model: {stats['llm_model']}")
-            print(f"   Temperature: {stats['temperature']}")
-            print(f"   Tools available: {stats['tools_count']}")
-            print(f"   Tool names: {', '.join(stats['tool_names'])}")
+            langgraph_agent_info = langgraph_agent.get_info()
+            print(f"   Provider: {langgraph_agent_info['llm_provider']}")
+            print(f"   Model: {langgraph_agent_info['llm_model']}")
+            print(f"   Temperature: {langgraph_agent_info['llm_temperature']}")
+            print(f"   Tools available: {langgraph_agent_info['tools_count']}")
+            print(f"   Tool names: {', '.join(langgraph_agent_info['tool_names'])}")
             print()
         except Exception as e:
             print(f"❌ Failed to get agent stats: {e}")
+            print(f"Full traceback:\n{traceback.format_exc()}")
             traceback.print_exc()
             return
 
@@ -62,7 +63,7 @@ async def main():
         print(f"User: {user_message}")
         print("Agent: ", end="")
 
-        async for chunk in agent.stream(user_message):
+        async for chunk in langgraph_agent.stream(user_message):
             if chunk:
                 print(chunk, end="", flush=True)
 
