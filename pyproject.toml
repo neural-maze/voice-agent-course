@@ -14,14 +14,18 @@ dependencies = [
   "pydantic",
   "pydantic-settings",
   "ipykernel",
-  "RealtimeTTS[all]",
-  "RealtimeSTT",
+  "realtimetts[all]",
+  "realtimestt",
   "pip>=25.2",
   "langchain==1.0.0a9",
   "langchain-core>=0.3.0",
   "langchain-ollama>=0.3.8",
   "langgraph>=0.2.0",
   "langchain-groq>=0.3.8",
+  "uvicorn>=0.37.0",
+  "websockets>=15.0.1",
+  "scipy>=1.15.2",
+  "pyaudio>=0.2.14",
 ]
 requires-python = ">= 3.10"
 

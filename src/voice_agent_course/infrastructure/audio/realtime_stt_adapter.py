@@ -247,7 +247,7 @@ class RealtimeSTTAdapter:
                             on_speech(text)
 
                     # Small delay to prevent overwhelming the system
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
             else:
                 # Indefinite listening - not practical with blocking API
                 return {

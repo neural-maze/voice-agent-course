@@ -9010,11 +9010,15 @@ dependencies = [
     { name = "langgraph" },
     { name = "loguru" },
     { name = "pip" },
+    { name = "pyaudio" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "realtimestt" },
     { name = "realtimetts", extra = ["all"] },
+    { name = "scipy" },
     { name = "typer" },
+    { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -9037,11 +9041,15 @@ requires-dist = [
     { name = "langgraph", specifier = ">=0.2.0" },
     { name = "loguru" },
     { name = "pip", specifier = ">=25.2" },
+    { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "realtimestt" },
     { name = "realtimetts", extras = ["all"] },
+    { name = "scipy", specifier = ">=1.15.2" },
     { name = "typer" },
+    { name = "uvicorn", specifier = ">=0.37.0" },
+    { name = "websockets", specifier = ">=15.0.1" },
 ]
 
 [package.metadata.requires-dev]
