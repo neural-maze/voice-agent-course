@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class OllamaClient:
     """Lightweight wrapper for ChatOllama with tool capability checking"""
 
+    # NOTE: see https://ollama.com/search?c=tools
     TOOL_CAPABLE_MODEL_FAMILIES = {
         "gemma3-tools",
         "PetrosStav/gemma3-tools",
