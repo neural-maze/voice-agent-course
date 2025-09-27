@@ -19,9 +19,6 @@ async def main():
 
     print("🛠️  Enhanced Voice Agent Demo")
     print("=" * 50)
-    print(f"🤖 Provider: {args.llm_provider}")
-    if args.llm_model:
-        print(f"🧠 Model: {args.llm_model}")
     print()
     print("💡 Try: 'Get me a random number', 'Weather in Paris'")
     print("🎯 Test interruption by speaking while tools are running")

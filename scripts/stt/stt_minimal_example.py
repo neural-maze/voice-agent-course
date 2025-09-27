@@ -68,7 +68,7 @@ async def test_continuous_transcription():
         result = await adapter.continuous_listen(duration=15.0, on_speech=on_speech)
 
         if result["success"]:
-            print(f"\n✅ Session completed!")
+            print("\n✅ Session completed!")
             print(f"   Total utterances: {result['total_utterances']}")
             print(f"   Session duration: {result['session_duration']:.2f}s")
             print(f"   Transcriptions collected: {len(transcriptions)}")
@@ -128,7 +128,7 @@ async def test_voice_agent_mode():
 
         # Get final stats
         stats = adapter.get_stats()
-        print(f"\n📊 Final Statistics:")
+        print("\n📊 Final Statistics:")
         print(f"   Total transcriptions: {stats['total_transcriptions']}")
         print(f"   Engine type: {stats['engine_type']}")
         print(f"   Conversation turns: {conversation_count}")
@@ -172,7 +172,7 @@ async def test_callback_system():
         # Use continuous listen to see callbacks in action
         result = await adapter.continuous_listen(duration=10.0)
 
-        print(f"\n📊 Callback Statistics:")
+        print("\n📊 Callback Statistics:")
         print(f"   Partial transcriptions: {partial_count}")
         print(f"   Final transcriptions: {final_count}")
         print(f"   Success: {result['success']}")

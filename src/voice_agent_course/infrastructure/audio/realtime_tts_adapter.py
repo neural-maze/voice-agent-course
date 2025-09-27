@@ -1,8 +1,9 @@
 import asyncio
 import time
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any
 
+from loguru import logger
 from RealtimeTTS import KokoroEngine, TextToAudioStream
 
 
@@ -11,20 +12,6 @@ class TTSMode(Enum):
 
     STREAMING = "streaming"  # Non-blocking, real-time streaming
     BLOCKING = "blocking"  # Blocking, wait for completion
-
-
-class TTSEngine(Protocol):
-    """Protocol for TTS engines to make testing easier"""
-
-    pass
-
-
-class TTSStream(Protocol):
-    """Protocol for TTS streams to make testing easier"""
-
-    def feed(self, text: str) -> None: ...
-    def play(self) -> None: ...
-    def play_async(self) -> None: ...
 
 
 class RealtimeTTSAdapter:
@@ -151,7 +138,7 @@ class RealtimeTTSAdapter:
                     self.first_audio_generated_time = time.time()
                     if self.transcription_received_time:
                         time_to_first_audio = self.first_audio_generated_time - self.transcription_received_time
-                        print(
+                        logger.info(
                             f"⏱️ Time from transcription received to first audio generated: "
                             f"{time_to_first_audio:.4f} seconds"
                         )
@@ -177,7 +164,7 @@ class RealtimeTTSAdapter:
             )
             return True
         except Exception as e:
-            print(f"❌ Error starting TTS playback: {e}")
+            logger.info(f"❌ Error starting TTS playback: {e}")
             self.is_playing = False
             return False
 
@@ -203,37 +190,37 @@ class RealtimeTTSAdapter:
 
     def stop_playing(self) -> None:
         """Stop the current playback immediately using official RealtimeTTS API."""
-        print("⏹️  Stopping TTS playback...")
+        logger.info("⏹️  Stopping TTS playback...")
         try:
             # Only try to stop if we're actually playing
             if self.is_playing and hasattr(self.stream, "stop"):
                 self.stream.stop()
-                print("🛑 Speech streaming should stop immediately")
+                logger.info("🛑 Speech streaming should stop immediately")
             else:
-                print("ℹ️  TTS not playing or no stop method available")
+                logger.info("ℹ️  TTS not playing or no stop method available")
 
             # Reset state
             self.is_playing = False
             self.current_mode = TTSMode.BLOCKING
 
         except Exception as e:
-            print(f"⚠️  Error calling stream.stop(): {e}")
+            logger.info(f"⚠️  Error calling stream.stop(): {e}")
             # Only recreate stream if the error isn't just about IDLE state
             if "IDLE" not in str(e):
                 try:
                     self.stream = self._initialize_stream()
-                    print("🔄 Recreated TTS stream as fallback")
+                    logger.info("🔄 Recreated TTS stream as fallback")
                 except Exception as e2:
-                    print(f"❌ Failed to recreate TTS stream: {e2}")
+                    logger.info(f"❌ Failed to recreate TTS stream: {e2}")
             else:
-                print("ℹ️  Stream was already idle, no action needed")
+                logger.info("ℹ️  Stream was already idle, no action needed")
         finally:
             self.is_playing = False
 
     def reset_stream(self) -> bool:
         """Reset the TTS stream to ensure it's ready for new text after interruption."""
         try:
-            print("🔄 Resetting TTS stream for fresh start...")
+            logger.info("🔄 Resetting TTS stream for fresh start...")
             # Stop any current playback first
             self.stop_playing()
 
@@ -242,18 +229,18 @@ class RealtimeTTSAdapter:
 
             self.agent_processing_start_time = None
 
-            print("✅ TTS stream reset successfully - reusing existing stream")
+            logger.info("✅ TTS stream reset successfully - reusing existing stream")
             return True
         except Exception as e:
-            print(f"❌ Failed to reset TTS stream: {e}")
+            logger.info(f"❌ Failed to reset TTS stream: {e}")
             # Fallback: recreate stream if there's an issue
             try:
                 self.stream = self._initialize_stream()
                 self.first_audio_generated_time = None
-                print("🔄 Created fresh TTS stream as fallback")
+                logger.info("🔄 Created fresh TTS stream as fallback")
                 return True
             except Exception as e2:
-                print(f"❌ Failed to create fresh TTS stream: {e2}")
+                logger.info(f"❌ Failed to create fresh TTS stream: {e2}")
                 return False
 
     def get_silence_durations(self) -> dict[str, float]:

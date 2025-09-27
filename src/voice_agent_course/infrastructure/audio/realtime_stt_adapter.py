@@ -1,10 +1,12 @@
 import asyncio
 import time
+import traceback
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any
 
+from loguru import logger
 from RealtimeSTT import AudioToTextRecorder
 
 
@@ -24,13 +26,6 @@ class STTModel(Enum):
     LARGE_V3 = "large-v3"  # Most recent and accurate
 
 
-class STTEngine(Protocol):
-    """Protocol for STT engines to make testing easier"""
-
-    def text(self) -> str: ...  # Blocking text retrieval - main method
-    def shutdown(self) -> None: ...  # Clean shutdown
-
-
 class RealtimeSTTAdapter:
     """
     Adapter for RealtimeSTT library.
@@ -39,7 +34,6 @@ class RealtimeSTTAdapter:
 
     def __init__(
         self,
-        engine: STTEngine | None = None,
         on_transcription: Callable[[str], None] | None = None,
         on_recording_start: Callable[[], None] | None = None,
         model: STTModel = STTModel.TINY_EN,
@@ -78,19 +72,13 @@ class RealtimeSTTAdapter:
         self.last_transcription_time: float | None = None
         self.is_active: bool = False
 
-        if engine is None:
-            # Production: import and create real objects
-            self._initialize_production_stt()
-        else:
-            # Testing: use injected mock
-            self.engine = engine
-            self.is_active = True
+        self._initialize_engine_stt()
 
-    def _initialize_production_stt(self):
+    def _initialize_engine_stt(self):
         """Initialize real RealtimeSTT components for production"""
         try:
-            print(f"🔄 Initializing STT with model '{self.model.value}'...")
-            print("   This may take 10-30 seconds on first run (downloading/loading model)")
+            logger.info(f"🔄 Initializing STT with model '{self.model.value}'...")
+            logger.info("   This may take 10-30 seconds on first run (downloading/loading model)")
 
             # Build recorder configuration
             recorder_config = {
@@ -112,21 +100,21 @@ class RealtimeSTTAdapter:
                         "on_realtime_transcription_stabilized": self._on_transcription,
                     }
                 )
-            # Note: RealtimeSTT doesn't have a simple "on_transcription" callback
-            # We handle transcriptions through the blocking .text() method
 
             # Create the recorder with enhanced configuration
             self.engine = AudioToTextRecorder(**recorder_config)
             self.is_active = True
-            print("✅ STT engine initialized and ready!")
+            logger.info("✅ STT engine initialized and ready!")
 
         except Exception as e:
-            print(f"❌ Error creating AudioToTextRecorder: {e}")
+            logger.error(f"❌ Error creating AudioToTextRecorder: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
             raise
 
     def _on_recording_start(self, *args, **kwargs):
         """Called when recording starts"""
-        print("\n🎤 Recording started...")
+        print()
+        logger.info("🎤 Recording started...")
 
         # Call the user-provided callback for immediate interruption
         if self.on_recording_start:
@@ -134,11 +122,11 @@ class RealtimeSTTAdapter:
 
     def _on_recording_stop(self, *args, **kwargs):
         """Called when recording stops"""
-        print("⏹️  Recording stopped.")
+        logger.info("⏹️  Recording stopped.")
 
     def _on_transcription_start(self, *args, **kwargs):
         """Called when transcription processing starts"""
-        print("🔄 Transcribing...")
+        logger.info("🔄 Transcribing...")
 
     def _on_partial_transcription(self, text: str, *args, **kwargs):
         """Called for partial/interim transcriptions"""
@@ -304,4 +292,4 @@ class RealtimeSTTAdapter:
             self.is_active = False
 
         except Exception as e:
-            print(f"⚠️  Error during STT shutdown: {e}")
+            logger.info(f"⚠️  Error during STT shutdown: {e}")

@@ -1,6 +1,5 @@
 """Mock tools for testing voice agent with async operations."""
 
-import asyncio
 import random
 
 from langchain_core.tools import tool

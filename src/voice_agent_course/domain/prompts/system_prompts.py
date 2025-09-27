@@ -50,12 +50,14 @@ TOOL_USAGE_PROMPT = """
 You are a helpful assistant. Use the available tools to help users with their requests.
 
 IMPORTANT:
-- When you use tools to gather information, always incorporate the specific results from those tools into your final response
+- When you use tools to gather information, always incorporate the specific results
+from those tools into your final response
 - Don't just say "I hope this helps" - actually use the data you collected to provide a comprehensive answer
 - You can reference previous parts of our conversation when relevant
 
 For example:
-- If asked about weather and a random number, respond with: "The weather in [city] is [weather details], and here's your random number: [number]"
+- If asked about weather and a random number, respond with:
+"The weather in [city] is [weather details], and here's your random number: [number]"
 - Always reference the specific results you got from the tools in your final response
 """
 

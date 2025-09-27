@@ -2,7 +2,10 @@
 
 import asyncio
 import time
+import traceback
 from typing import Any
+
+from loguru import logger
 
 from voice_agent_course.domain.agents.langgraph_agent import LangGraphAgent
 
@@ -30,7 +33,7 @@ class EnhancedVoiceAgent:
             llm_model: Model name (uses provider default if None)
             llm_temperature: Model temperature
         """
-        print("🤖 Initializing Enhanced Voice Agent with LangGraph tools...")
+        logger.info("🤖 Initializing Enhanced Voice Agent with LangGraph tools...")
 
         # Initialize TTS adapter first (needed for interruption callback)
         self.tts_adapter = RealtimeTTSAdapter()
@@ -65,8 +68,8 @@ class EnhancedVoiceAgent:
 
         self.agent_stats = self.langgraph_agent.get_stats()
 
-        print("✅ Enhanced Voice Agent initialized with tools!")
-        print(f"🛠️  Available tools: {', '.join(self.agent_stats['tool_names'])}")
+        logger.info("✅ Enhanced Voice Agent initialized with tools!")
+        logger.info(f"🛠️  Available tools: {', '.join(self.agent_stats['tool_names'])}")
 
     def _on_recording_start(self):
         """
@@ -90,7 +93,7 @@ class EnhancedVoiceAgent:
         """
         Enhanced speech-to-text loop with tool execution awareness.
         """
-        print("🎤 Starting enhanced speech-to-text loop...")
+        logger.info("🎤 Starting enhanced speech-to-text loop...")
 
         while True:
             try:
@@ -98,7 +101,7 @@ class EnhancedVoiceAgent:
 
                 if result["success"]:
                     text = result["text"]
-                    print(f"👤 User: {text}")
+                    logger.info(f"👤 User: {text}")
 
                     # Stop any ongoing TTS playback
                     self.tts_adapter.stop_playing()
@@ -110,21 +113,22 @@ class EnhancedVoiceAgent:
 
                     # Check for exit command
                     if text.lower().strip() in ["exit", "quit", "goodbye", "stop"]:
-                        print("👋 Goodbye!")
+                        logger.info("👋 Goodbye!")
                         await self.input_queue.put(None)
                         break
                 else:
-                    print(f"❌ STT Error: {result['error']}")
+                    logger.info(f"❌ STT Error: {result['error']}")
 
             except Exception as e:
-                print(f"❌ Error in STT loop: {e}")
+                logger.error(f"❌ Error in STT loop: {e}")
+                logger.error(f"Full traceback:\n{traceback.format_exc()}")
                 continue
 
     async def agent_loop(self):
         """
         Enhanced LLM processing loop using LangGraph agent with tools and optimized streaming.
         """
-        print("🧠 Starting LangGraph agent processing loop...")
+        logger.info("🧠 Starting LangGraph agent processing loop...")
 
         while True:
             try:
@@ -132,7 +136,7 @@ class EnhancedVoiceAgent:
                 if user_input is None:
                     break
 
-                print(f"🤖 Agent processing: {user_input}")
+                logger.info(f"🤖 Agent processing: {user_input}")
                 self.agent_processing_start_time = time.time()
 
                 # Stream response with immediate TTS feeding for low latency
@@ -162,11 +166,12 @@ class EnhancedVoiceAgent:
                 print()  # New line after complete response
 
                 # Signal end of stream to TTS (this is the missing piece!)
-                print(f"🔊 Streamed {chunk_count} chunks to TTS, signaling end...")
+                logger.info(f"🔊 Streamed {chunk_count} chunks to TTS, signaling end...")
                 self.tts_adapter.feed_text("")  # Signal end of stream
 
             except Exception as e:
-                print(f"❌ Error in agent loop: {e}")
+                logger.error(f"❌ Error in agent loop: {e}")
+                logger.error(f"Full traceback:\n{traceback.format_exc()}")
                 # Don't crash the agent on errors
 
     async def tts_loop(self):
@@ -174,7 +179,7 @@ class EnhancedVoiceAgent:
         Simplified TTS loop - now TTS is fed directly from agent_loop for minimal latency.
         This loop now just handles cleanup and status monitoring.
         """
-        print("🔊 TTS now streams directly from agent - minimal latency mode!")
+        logger.info("🔊 TTS now streams directly from agent - minimal latency mode!")
 
         while True:
             try:
@@ -186,18 +191,16 @@ class EnhancedVoiceAgent:
                     self.current_tool_name = None
 
             except Exception as e:
-                print(f"❌ Error in TTS monitoring: {e}")
+                logger.error(f"❌ Error in TTS monitoring: {e}")
+                logger.error(f"Full traceback:\n{traceback.format_exc()}")
                 continue
 
     async def run_conversation(self):
         """
         Main conversation loop for enhanced voice agent.
         """
-        print("🚀 Starting enhanced voice conversation with tool support...")
-        print("💡 Say something to begin, or say 'exit' to quit")
-        print("🛠️  Try asking me to:")
-        print("   - 'Get me a random number'")
-        print("   - 'What's the weather in New York?'")
+        logger.info("🚀 Starting enhanced voice conversation with tool support...")
+        logger.info("💡 Say something to begin, or say 'exit' to quit")
 
         try:
             await asyncio.gather(
@@ -208,15 +211,16 @@ class EnhancedVoiceAgent:
             )
 
         except KeyboardInterrupt:
-            print("\n⏹️  Enhanced conversation interrupted by user")
+            logger.info("\n⏹️  Enhanced conversation interrupted by user")
         except Exception as e:
-            print(f"❌ Error in enhanced conversation: {e}")
+            logger.error(f"❌ Error in enhanced conversation: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
         finally:
             await self.shutdown()
 
     async def shutdown(self):
         """Clean shutdown of all components."""
-        print("🔄 Shutting down Enhanced Voice Agent...")
+        logger.info("🔄 Shutting down Enhanced Voice Agent...")
 
         try:
             # Shutdown adapters
@@ -226,10 +230,11 @@ class EnhancedVoiceAgent:
             # Clear queues
             await self.clear_queues()
 
-            print("✅ Enhanced Voice Agent shutdown complete")
+            logger.info("✅ Enhanced Voice Agent shutdown complete")
 
         except Exception as e:
-            print(f"⚠️  Error during shutdown: {e}")
+            logger.error(f"⚠️  Error during shutdown: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
 
     def get_stats(self) -> dict[str, Any]:
         """Get comprehensive enhanced agent statistics."""

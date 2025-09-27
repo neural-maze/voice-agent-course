@@ -6,6 +6,7 @@ from typing import Any
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
+from loguru import logger
 
 from voice_agent_course.domain.prompts.system_prompts import DEFAULT_SYSTEM_PROMPT
 from voice_agent_course.infrastructure.llm_providers import LLMProviderFactory
@@ -87,13 +88,13 @@ class LangGraphAgent:
                 elif event["event"] == "on_tool_start":
                     tool_name = event["name"]
                     tool_msg = f"Using {tool_name} tool. "
-                    print(f"🛠️ {tool_msg}")
+                    logger.info(f"🛠️ {tool_msg}")
                     # response_content += tool_msg
                     # yield tool_msg
 
             # Update conversation history with the complete response
             if response_content.strip():
-                # print(f"🔍 {response_content.strip()}")
+                # logger.info(f"🔍 {response_content.strip()}")
                 self._update_history(user_message, response_content.strip())
 
         except Exception as e:
