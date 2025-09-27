@@ -6,7 +6,7 @@ from pathlib import Path
 # Add src to path so we can import our modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from voice_agent_course.application.voice_agent_enhanced import EnhancedVoiceAgent
+from voice_agent_course.application.voice_agent import VoiceAgent
 
 
 async def main():
@@ -28,7 +28,7 @@ async def main():
     try:
         # Create the agent
         print("🔧 Creating Enhanced Voice Agent...")
-        agent = EnhancedVoiceAgent(
+        agent = VoiceAgent(
             llm_provider=args.llm_provider,
             llm_model=args.llm_model,
         )

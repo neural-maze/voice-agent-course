@@ -1,4 +1,4 @@
-"""Enhanced Voice Agent with LangChain agent capabilities and tool support."""
+"""Voice Agent with LangGraph agent capabilities and tool support."""
 
 import asyncio
 import time
@@ -13,10 +13,10 @@ from ..infrastructure.audio.realtime_stt_adapter import RealtimeSTTAdapter, STTM
 from ..infrastructure.audio.realtime_tts_adapter import RealtimeTTSAdapter
 
 
-class EnhancedVoiceAgent:
+class VoiceAgent:
     """
-    Enhanced voice-enabled AI agent with LangChain tool support.
-    Combines STT, LangChain Agent with tools, and TTS for natural conversation.
+    Voice-enabled AI agent with LangGraph tool support.
+    Combines STT, LangGraph Agent with tools, and TTS for natural conversation.
     """
 
     def __init__(
